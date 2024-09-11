@@ -1,0 +1,29 @@
+name: Deploy Function App to Azure
+
+on:
+  push:
+    branches:
+      - main  # Trigger deployment on push to the main branch
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js (if using Node.js for your Azure Function)
+      uses: actions/setup-node@v2
+      with:
+        node-version: '14.x'  # Specify your Node.js version
+
+    - name: Install dependencies (if needed)
+      run: npm install  # Optional, depending on your project
+
+    - name: Deploy to Azure Functions
+      uses: Azure/functions-action@v1
+      with:
+        app-name: 'dev-demo-funcs-app'  # Replace with the name of your Azure Function App
+        publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
+        package: '.'
