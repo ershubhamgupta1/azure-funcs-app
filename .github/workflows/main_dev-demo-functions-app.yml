@@ -1,49 +1,34 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/azure/functions-action
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
-name: Build and deploy Node.js project to Azure Function App - dev-demo-functions-app
+name: Deploy Azure Function App
 
 on:
   push:
     branches:
-      - main
-  workflow_dispatch:
-
-env:
-  AZURE_FUNCTIONAPP_PACKAGE_PATH: '.' # set this to the path to your web app project, defaults to the repository root
-  NODE_VERSION: '18.x' # set this to the node version to use (supports 8.x, 10.x, 12.x)
+      - main  # Deploys when code is pushed to the main branch
+  workflow_dispatch:  # Allows manual trigger
 
 jobs:
-  build:
-    runs-on: windows-latest
-    steps:
-      - name: 'Checkout GitHub Action'
-        uses: actions/checkout@v4
-
-      - name: Setup Node ${{ env.NODE_VERSION }} Environment
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: 'Resolve Project Dependencies Using Npm'
-        shell: pwsh
-        run: |
-          pushd './${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}'
-          npm install
-          npm run build --if-present
-          npm run test --if-present
-          popd
-
-  deploy:
-    runs-on: windows-latest
-    needs: build
-    environment:
-      name: 'Production'
-      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+  build-and-deploy:
+    runs-on: ubuntu-latest
     permissions:
       id-token: write #This is required for requesting the JWT
 
-    steps:      
+    steps:
+      # Checkout the repository
+      - name: 'Checkout GitHub Action'
+        uses: actions/checkout@v3
+
+      # Set up Node.js (if using JavaScript/TypeScript for Azure Functions)
+      - name: 'Set up Node.js'
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16.x'  # Use Node.js version that matches Azure Function runtime
+
+      # Install dependencies (if applicable)
+      - name: 'Install dependencies'
+        run: npm install
+        working-directory: ./ # Adjust if your function app is in a subdirectory
+
+      # Log in to Azure using a service principal
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -51,11 +36,11 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_FE37AE8ECDFB46BBA83F095B2D72F8C3 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_22701192172F4A2CA7AB3B4BD4CDD297 }}
 
-      - name: 'Run Azure Functions Action'
-        uses: Azure/functions-action@v1
-        id: fa
+      # Deploy to Azure Functions
+      - name: 'Deploy Azure Function App'
+        uses: azure/functions-action@v1
         with:
-          app-name: 'dev-demo-functions-app'
-          slot-name: 'Production'
-          package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
-          
+          app-name: 'dev-demo-functions-app'  # Azure Function App name
+          package: '.'  # Path to your function app's code, adjust if needed
+          publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }} # Azure Function App publish profile secret
+
